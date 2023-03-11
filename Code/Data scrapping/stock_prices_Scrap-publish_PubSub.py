@@ -75,8 +75,8 @@ def Get_StockINFO ():
     return stocks
 
 if __name__ == "__main__":
-    project_id = "your-project-id"
-    topic_name = "your-topic-name"
+    project_id = "stock-analysis-project-379015"
+    topic_name = "stock_prices"
     
     stocks_info = Get_StockINFO()
     data = [[name,stocks_info[name]] for name in stocks_info]
@@ -96,4 +96,3 @@ if __name__ == "__main__":
 
         publish_message(df_stocks)
         time.sleep(60) # Wait for 1 minute before publishing the next message
-
