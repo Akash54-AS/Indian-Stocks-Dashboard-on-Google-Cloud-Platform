@@ -31,34 +31,32 @@ def publish_message(df):
         return f"Message published to {topic_path}. Message ID: {future.result()}"
     except Exception as e:
         return f"Error publishing message to {topic_path}: {str(e)}"
-
-def Get_Prices(symbols):
-    """
-    This function fetch the data from google finance and scrap the prices of all the NIFTY50 stocks
-    
-    Input--> symbols
-    Output--> prices 
-    """
+        
+def Get_Prices(stock):
     headers= {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'} 
-    urls=[f"https://www.google.com/finance/quote/{symbol}" for symbol in symbols]
+    urls=[[f"https://www.google.com/finance/quote/{symbols}",symbols,names] for (names,symbols) in zip(stock["Names"],stock["Symbols"])]
+
+    
     def fetch_url(url):
-        response = requests.get(url,headers=headers)
+        response = requests.get(url[0],headers=headers)
         soup= BeautifulSoup(response.text, 'html.parser')
         price= soup.find("div",{"class":"YMlKec fxKbKc"}).get_text()
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return [strToInt(price),timestamp]
-
+        return [url[2],url[1],strToInt(price),timestamp]
+    
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         futures = [executor.submit(fetch_url, url) for url in urls]
         prices = [f.result() for f in concurrent.futures.as_completed(futures)]
+    
+    #url=f'https://www.google.com/finance/quote/{symbol}'
+    #r = requests.get(url)
+    #soup= BeautifulSoup(r.text, 'html.parser')
+    #prices= soup.find("div",{"class":"YMlKec fxKbKc"}).get_text()
     return prices
 
+    #print(price) 
+
 def Get_StockINFO ():
-    """
-    This function fetch the NIFTY50 stocks names and symbols
-    Input: None
-    Output: stocks
-    """
     url = "https://en.wikipedia.org/wiki/NIFTY_50"
     response = requests.get(url)
 
@@ -73,12 +71,11 @@ def Get_StockINFO ():
         name=row.findAll("td")[0].text.strip()
         symbol=symbol+":NSE"
         stocks.update({name:symbol})
+    #print(stocks)
     return stocks
 
+
 def run(request):
-    """
-    This function is the main function running in the cloud function
-    """
     request = request.get_data()
     try: 
         request_json = json.loads(request.decode())
@@ -91,18 +88,20 @@ def run(request):
         stocks_info = Get_StockINFO()
         data = [[name,stocks_info[name]] for name in stocks_info]
         df_stocks= pd.DataFrame(data,columns=['Names','Symbols'])
-            
-            
-        prices= Get_Prices(df_stocks.iloc[:,1])
-                
-        # adding price to the final result data frame
+        prices= Get_Prices(df_stocks)
+        #print(prices)
+        #df= pd.DataFrame(prices, columns =["Prices","Timestamp","Symbols"]) 
+
+        '''# adding price to the final result data frame
         df_stocks['Prices']=[column[0] for column in prices]
 
         # adding timestamps to the final result dataframe
         df_stocks['Timestamp']=[column[1] for column in prices]
+        print(df_stocks)
+        '''
+        df=pd.DataFrame(prices,columns=['Names','Symbols','Prices','Timestamp'])
 
-        # Publishing the messages to the pubsub topic
-        publish_func_log= publish_message(df_stocks)
+        publish_func_log= publish_message(df)
         return publish_func_log
     except Exception as e:
         return f'{request_json.get("name")} Failed'
