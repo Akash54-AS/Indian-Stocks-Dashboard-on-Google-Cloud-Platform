@@ -7,6 +7,9 @@ import json
 from datetime import datetime
 
 def strToInt(price):
+    '''
+    This function will change the float looking string whihc is a price into integer 
+    '''
     for i in price:
         if i.isnumeric() or i==".":
             continue
@@ -33,6 +36,11 @@ def publish_message(df):
         return f"Error publishing message to {topic_path}: {str(e)}"
         
 def Get_Prices(stock):
+    '''
+    This function will the scrap data from Google finance for each stock in NIFTY50
+    and return the prices for individual stocks
+    '''
+
     headers= {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'} 
     urls=[[f"https://www.google.com/finance/quote/{symbols}",symbols,names] for (names,symbols) in zip(stock["Names"],stock["Symbols"])]
 
@@ -57,6 +65,10 @@ def Get_Prices(stock):
     #print(price) 
 
 def Get_StockINFO ():
+    '''
+    This function will give the info regarding the stocks which is in NIFTY50
+    output --> dict{names:symbols}
+    '''
     url = "https://en.wikipedia.org/wiki/NIFTY_50"
     response = requests.get(url)
 
